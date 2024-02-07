@@ -1,0 +1,190 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dinamic Div Creator</title>
+<style>
+    .container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0; /* Elimina el espacio entre los elementos */
+}
+
+.horizontal-divs {
+    display: flex;
+    height: 100px;
+    margin: 0; /* Elimina los márgenes para evitar espacios entre los divs */
+}
+
+.nametrack {
+    background-color: salmon; /* Fondo de color para nametrack */
+    border: 2px solid blue; /* Borde específico para nametrack */
+    padding: 10px;
+    text-align: center;
+    text-size-adjust: 20%;
+    flex: 1;
+}
+
+.plot {
+    padding: 0; /* Sin padding para el canvas ajustarse al tamaño del div */
+    flex: 1;
+    border: 2px solid blue;
+    display: flex; /* Asegura que el canvas se ajuste al div */
+}
+.playMusic {
+    display: flex;
+    margin-top: 10px; /* Añade espacio entre los tracks y los controles */
+}
+
+#play {
+    flex: 3; /* Hace que ocupe el mismo espacio que nametrack y plot juntos */
+    height: 50px; /* Altura del botón para que coincida con la altura de record */
+}
+
+#Barra {
+    background-color: red; /* Fondo rojo para la barra */
+    flex: 7; /* Hace que ocupe el mismo espacio que el div record */
+    height: 50px; /* Altura de la barra para que coincida con la altura de record */
+}
+
+.record {
+    border: 2px solid blue;
+    padding: 10px;
+    flex: 1;
+    background-color: aquamarine;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+}
+
+</style>
+</head>
+<body>
+
+<button id="agregarPista">Agregar pista</button>
+<input type="file" id="fileInput" accept=".wav" style="display: none;">
+
+<div id="mainContainer" class="container">
+    <!-- Los conjuntos de divs se agregarán aquí -->
+</div>
+
+<div class="playMusic">
+    <button id="play" style="flex-grow: 3;">PLAY</button>
+    <div id="Barra" style="flex-grow: 7;"></div>
+</div>
+
+
+<script>
+    document.getElementById('agregarPista').addEventListener('click', function() {
+    // Simula un clic en el input de archivo
+    document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+        const archivo = e.target.files[0];
+        processAudioFile(archivo); // Procesa el archivo seleccionado
+    }
+});
+
+async function processAudioFile(file) {
+    const mainContainer = document.getElementById('mainContainer');
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Lee el archivo como un ArrayBuffer y luego decodifícalo con la Web Audio API
+    const arrayBuffer = await file.arrayBuffer();
+    audioContext.decodeAudioData(arrayBuffer, (audioBuffer) => {
+        // Una vez decodificado el archivo, procede a crear los divs
+        createDivSet(file.name, audioBuffer);
+    });
+}
+
+function createDivSet(trackName, audioBuffer) {
+    const mainContainer = document.getElementById('mainContainer');
+
+    const newDivSet = document.createElement('div');
+    newDivSet.classList.add('horizontal-divs');
+
+    // nametrack div
+    const innerDiv1 = document.createElement('div');
+    innerDiv1.classList.add('nametrack');
+    // Calcula la duración del track
+    const duration = audioBuffer.duration;
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60);
+    const durationText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    // Configura el contenido para incluir tanto el nombre como la duración
+    innerDiv1.innerHTML = `${trackName}<br>Duración: ${durationText} min`; // Usa innerHTML para incluir etiquetas HTML como <br>
+    innerDiv1.style.flex = '1 1 10%'; // Ajusta para que ocupe el 10%
+    newDivSet.appendChild(innerDiv1);
+
+    // plot div
+    const innerDiv2 = document.createElement('div');
+    innerDiv2.classList.add('plot');
+    const canvas = document.createElement('canvas');
+    canvas.style.width = '100%'; // Asegura que el canvas llene el div plot
+    canvas.style.height = '100%'; // Asegura que el canvas llene el div plot
+    innerDiv2.appendChild(canvas);
+    innerDiv2.style.flex = '1 1 20%'; // Ajusta para que ocupe el 20%
+    newDivSet.appendChild(innerDiv2);
+
+    // record div
+    const innerDiv3 = document.createElement('div');
+    innerDiv3.classList.add('record');
+    innerDiv3.style.flex = '1 1 70%'; // Ajusta para que ocupe el 70%
+    newDivSet.appendChild(innerDiv3);
+
+    mainContainer.appendChild(newDivSet);
+
+    // Llama a visualizeAudio para dibujar algo basado en audioBuffer en el canvas
+    visualizeAudio(audioBuffer, canvas);
+}
+
+
+// Asegúrate de que el estilo CSS esté definido para manejar correctamente el ancho
+// de los divs según lo especificado en la propiedad flex de cada uno.
+
+
+function visualizeAudio(audioBuffer, canvas) {
+    const canvasCtx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Limpia el canvas
+    canvasCtx.clearRect(0, 0, width, height);
+
+    // Dibuja un fondo
+    canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+    canvasCtx.fillRect(0, 0, width, height);
+
+    // Obtiene los datos de audio
+    const data = audioBuffer.getChannelData(0); // Solo usamos el primer canal
+    const step = Math.ceil(data.length / width); // Paso de muestreo para ajustar los datos al ancho del canvas
+    const amp = height / 2; // Amplitud de la forma de onda
+
+    canvasCtx.fillStyle = 'rgb(0, 0, 0)';
+    canvasCtx.beginPath();
+
+    for (let i = 0; i < width; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        for (let j = 0; j < step; j++) {
+            const datum = data[(i * step) + j]; // Obtiene el dato de audio
+            if (datum < min) min = datum;
+            if (datum > max) max = datum;
+        }
+        canvasCtx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+    }
+}
+
+
+
+</script>
+
+</body>
+</html>

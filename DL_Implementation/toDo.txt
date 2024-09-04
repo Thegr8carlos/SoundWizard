@@ -1,0 +1,3 @@
+-  Agregar funciones para convertir los arrreglos de los archivos .wav a una representacion 2d con un size fijo (spectograma, cromagrama, fourier, wavelet,...).
+- Agregar funciones feature extraction basadas en representacion numerica.
+- Implementacion de modelos basados en diferentes caracteristicas y modelo basado en la union de diferentes caracteristicas.

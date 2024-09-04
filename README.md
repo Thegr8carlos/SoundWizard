@@ -1,2 +1,2 @@
 # SoundWizard
-All the implementations in sound Porgramming.
+All the implementations in sond and music stuff.
